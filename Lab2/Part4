@@ -1,0 +1,56 @@
+/* Your Name & E-mail:Jakin Chan jchan419@ucr.edu
+* Lab Section: 021
+* Assignment: Lab 2  Exercise 4 
+* Exercise Description: If button (A0) is pressed, light up the LED (4)
+*
+* I acknowledge all content contained herein, excluding 
+*   template or example code, is my own original work.
+*
+* Demo Link: https://youtu.be/WqBOVxyFT7o
+*/
+
+// C++ code
+//
+enum States {OFF, ON} state;
+void setup() {
+  pinMode(4, OUTPUT);
+  digitalWrite(4, LOW);
+  pinMode(A0, INPUT_PULLUP);
+  Serial.begin(9600);
+}
+
+void Tick(){
+    switch(state){
+        case ON:
+            if(digitalRead(A0) == LOW){
+                state = OFF;
+            }else if(digitalRead(A0) == HIGH){
+                state = ON;
+            }
+            break;
+        case OFF:
+            if(digitalRead(A0) == HIGH){
+                state = ON;
+            }else if(digitalRead(A0) == LOW){
+                state = OFF;
+            }
+            break;
+        default:
+            break;
+    }
+    switch(state){
+        case ON:
+            digitalWrite(4, HIGH);
+            break;
+        case OFF:
+            digitalWrite(4, LOW);
+            break;
+        default:
+            break;
+    }
+}
+
+void loop() {
+  state = OFF;
+  Tick();
+}

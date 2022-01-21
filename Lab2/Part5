@@ -1,0 +1,42 @@
+/* Your Name & E-mail:Jakin Chan jchan419@ucr.edu
+* Lab Section: 021
+* Assignment: Lab 2  Exercise 5
+* Exercise Description: IF A0 is pressed, light B0. If A1 is pressed, light B1. B0 and B1 is off when both A0 and A1 are pressed or when neither is pressed.
+*
+* I acknowledge all content contained herein, excluding 
+*   template or example code, is my own original work.
+*
+* Demo Link:
+*/
+
+#define b0 2
+#define b1 3
+
+void setup() {
+    pinMode(b0, OUTPUT);
+    pinMode(b1, OUTPUT);
+    digitalWrite(b0, LOW);
+    digitalWrite(b1, LOW);
+    pinMode(A0, INPUT_PULLUP);
+    pinMode(A1, INPUT_PULLUP);
+    Serial.begin(9600); 
+}
+
+void resetB(){
+    digitalWrite(b1,LOW);
+    digitalWrite(b0,LOW);
+}
+
+void loop() {
+    resetB();
+
+    if(digitalRead(A0) == HIGH && digitalRead(A1) == HIGH){
+        resetB();
+    }else if(digitalRead(A0) == HIGH){
+        digitalWrite(b0, HIGH);
+    }else if(digitalRead(A1) == HIGH){
+        digitalWrite(b1, HIGH);
+    }else{
+        resetB();
+    } 
+}

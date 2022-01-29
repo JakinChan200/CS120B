@@ -1,0 +1,88 @@
+/* Your Name & E-mail:Jakin Chan jchan419@ucr.edu
+* Lab Section: 021
+* Assignment: Lab 3  Exercise 1
+* Exercise Description: Have either b0 or b1 lit. When A0 is pressed, switch it
+*
+* I acknowledge all content contained herein, excluding 
+*   template or example code, is my own original work.
+*
+* Demo Link: https://youtu.be/-nMiUWYBm2A
+*/
+
+#define b0 2
+#define b1 3
+
+enum States {SM_B1, SM_B0, SM_B1_PRESS, SM_B0_PRESS, SM_START} state;
+void setup() {
+    pinMode(b0, OUTPUT);
+    pinMode(b1, OUTPUT);
+    digitalWrite(b0, LOW);
+    digitalWrite(b1, LOW);
+    pinMode(A0, INPUT_PULLUP);
+    state = SM_START;
+    Serial.begin(9600);
+}
+
+void Tick(){
+    switch(state){
+        case SM_START:
+            state = SM_B1;
+            break;
+        case SM_B1:
+            if(digitalRead(A0) == HIGH){
+                state = SM_B0_PRESS;
+            }else if(digitalRead(A0) == LOW){
+                state = SM_B1;
+            }
+            break;
+        case SM_B0:
+            if(digitalRead(A0) == HIGH){
+                state = SM_B1_PRESS;
+            }else if(digitalRead(A0) == LOW){
+                state = SM_B0;
+            }
+            break;
+        case SM_B1_PRESS:
+            if(digitalRead(A0) == HIGH){
+                state = SM_B1_PRESS;
+            }else if(digitalRead(A0) == LOW){
+                state = SM_B1;
+            }
+            break;
+        case SM_B0_PRESS:
+            if(digitalRead(A0) == HIGH){
+                state = SM_B0_PRESS;
+            }else if(digitalRead(A0) == LOW){
+                state = SM_B0;
+            }
+            break;
+        default:
+            break;
+    }
+
+    switch(state){
+        case SM_START:
+            break;
+        case SM_B1:
+            digitalWrite(b0, LOW);
+            digitalWrite(b1, HIGH);
+            break;
+        case SM_B0:
+            digitalWrite(b0, HIGH);
+            digitalWrite(b1, LOW);
+            break;
+        case SM_B0_PRESS:
+            digitalWrite(b0, HIGH);
+            digitalWrite(b1, LOW);
+            break;
+        case SM_B1_PRESS:
+            digitalWrite(b0, LOW);
+            digitalWrite(b1, HIGH);
+            break;
+        default:
+            break;
+    }
+
+void loop() {
+    Tick(); 
+}

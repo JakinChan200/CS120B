@@ -1,0 +1,210 @@
+/* Your Name & E-mail:Jakin Chan jchan419@ucr.edu
+* Lab Section: 021
+* Assignment: Lab 3  Exercise 2
+* Exercise Description: Setup a lightshow like a slideshow where the lights change when A0 is pressed
+*
+* I acknowledge all content contained herein, excluding 
+*   template or example code, is my own original work.
+*
+* Demo Link: https://youtu.be/Vz93rle1Jmc
+*/
+
+#define b0 2
+#define b1 3
+#define b2 4
+#define b3 5
+#define b4 6
+#define b5 7
+#define b6 8
+#define b7 9
+
+enum States {SM_P1_PRESS, SM_P1_RELEASE, SM_P2_PRESS, SM_P2_RELEASE, SM_P3_PRESS, SM_P3_RELEASE, SM_P4_PRESS, SM_P4_RELEASE, SM_P5_PRESS, SM_P5_RELEASE, SM_START} state;
+void setup() {
+    pinMode(b0, OUTPUT);
+    pinMode(b1, OUTPUT);
+    pinMode(b2, OUTPUT);
+    pinMode(b3, OUTPUT);
+    pinMode(b4, OUTPUT);
+    pinMode(b5, OUTPUT);
+    pinMode(b6, OUTPUT);
+    pinMode(b7, OUTPUT);
+    
+    digitalWrite(b0, LOW);
+    digitalWrite(b1, LOW);
+    digitalWrite(b2, LOW);
+    digitalWrite(b3, LOW);
+    digitalWrite(b4, LOW);
+    digitalWrite(b5, LOW);
+    digitalWrite(b6, LOW);
+    digitalWrite(b7, LOW);
+    
+    pinMode(A0, INPUT_PULLUP);
+    state = SM_START;
+    Serial.begin(9600);
+}
+
+void resetB(){
+    digitalWrite(b0,LOW);
+    digitalWrite(b1,LOW);
+    digitalWrite(b2,LOW);
+    digitalWrite(b3,LOW);
+    digitalWrite(b4,LOW);
+    digitalWrite(b5,LOW);
+    digitalWrite(b6,LOW);
+    digitalWrite(b7,LOW);
+}
+
+void Tick(){
+    switch(state){
+        case SM_START:
+            state = SM_P5_RELEASE;
+            break;
+        case SM_P1_PRESS:
+            if(digitalRead(A0) == HIGH){
+                state = SM_P1_PRESS;
+            }else if(digitalRead(A0) == LOW){
+                state = SM_P1_RELEASE;
+            }
+            break;
+        case SM_P1_RELEASE:
+            if(digitalRead(A0) == HIGH){
+                state = SM_P2_PRESS;
+            }else if(digitalRead(A0) == LOW){
+                state = SM_P1_RELEASE;
+            }
+            break;
+        case SM_P2_PRESS:
+            if(digitalRead(A0) == HIGH){
+                state = SM_P2_PRESS;
+            }else if(digitalRead(A0) == LOW){
+                state = SM_P2_RELEASE;
+            }
+            break;
+        case SM_P2_RELEASE:
+            if(digitalRead(A0) == HIGH){
+                state = SM_P3_PRESS;
+            }else if(digitalRead(A0) == LOW){
+                state = SM_P2_RELEASE;
+            }
+            break;
+        case SM_P3_PRESS:
+            if(digitalRead(A0) == HIGH){
+                state = SM_P3_PRESS;
+            }else if(digitalRead(A0) == LOW){
+                state = SM_P3_RELEASE;
+            }
+            break;
+        case SM_P3_RELEASE:
+            if(digitalRead(A0) == HIGH){
+                state = SM_P4_PRESS;
+            }else if(digitalRead(A0) == LOW){
+                state = SM_P3_RELEASE;
+            }
+            break;
+        case SM_P4_PRESS:
+            if(digitalRead(A0) == HIGH){
+                state = SM_P4_PRESS;
+            }else if(digitalRead(A0) == LOW){
+                state = SM_P4_RELEASE;
+            }
+            break;
+        case SM_P4_RELEASE:
+            if(digitalRead(A0) == HIGH){
+                state = SM_P5_PRESS;
+            }else if(digitalRead(A0) == LOW){
+                state = SM_P4_RELEASE;
+            }
+            break;
+        case SM_P5_PRESS:
+            if(digitalRead(A0) == HIGH){
+                state = SM_P5_PRESS;
+            }else if(digitalRead(A0) == LOW){
+                state = SM_P5_RELEASE;
+            }
+            break;
+        case SM_P5_RELEASE:
+            if(digitalRead(A0) == HIGH){
+                state = SM_P1_PRESS;
+            }else if(digitalRead(A0) == LOW){
+                state = SM_P5_RELEASE;
+            }
+            break;
+        default:
+            break;
+    }
+
+    switch(state){
+        case SM_START:
+            break;
+        case SM_P1_PRESS:
+            resetB();
+            digitalWrite(b0, HIGH);
+            digitalWrite(b1, HIGH);
+            digitalWrite(b2, LOW);
+            digitalWrite(b3, LOW);
+            digitalWrite(b4, LOW);
+            digitalWrite(b5, LOW);
+            digitalWrite(b6, LOW);
+            digitalWrite(b7, LOW);
+            break;
+        case SM_P1_RELEASE:
+            break;
+        case SM_P2_PRESS:
+            resetB();
+            digitalWrite(b0, LOW);
+            digitalWrite(b1, LOW);
+            digitalWrite(b2, HIGH);
+            digitalWrite(b3, HIGH);
+            digitalWrite(b4, LOW);
+            digitalWrite(b5, LOW);
+            digitalWrite(b6, LOW);
+            digitalWrite(b7, LOW);
+            break;
+        case SM_P2_RELEASE:
+            break;
+        case SM_P3_PRESS:
+            resetB();
+            digitalWrite(b0, LOW);
+            digitalWrite(b1, LOW);
+            digitalWrite(b2, LOW);
+            digitalWrite(b3, LOW);
+            digitalWrite(b4, HIGH);
+            digitalWrite(b5, HIGH);
+            digitalWrite(b6, LOW);
+            digitalWrite(b7, LOW);
+            break;
+        case SM_P3_RELEASE:
+            break;
+        case SM_P4_PRESS:
+            resetB();
+            digitalWrite(b0, LOW);
+            digitalWrite(b1, LOW);
+            digitalWrite(b2, LOW);
+            digitalWrite(b3, LOW);
+            digitalWrite(b4, LOW);
+            digitalWrite(b5, LOW);
+            digitalWrite(b6, HIGH);
+            digitalWrite(b7, HIGH);
+            break;
+        case SM_P4_RELEASE:
+            break;
+        case SM_P5_PRESS:
+            resetB();
+            digitalWrite(b0, HIGH);
+            digitalWrite(b1, LOW);
+            digitalWrite(b2, LOW);
+            digitalWrite(b3, LOW);
+            digitalWrite(b4, LOW);
+            digitalWrite(b5, LOW);
+            digitalWrite(b6, LOW);
+            digitalWrite(b7, HIGH);
+            break;
+        case SM_P5_RELEASE:
+            break;
+        default:
+            break;
+    }
+}
+void loop() {
+    Tick(); 
+}

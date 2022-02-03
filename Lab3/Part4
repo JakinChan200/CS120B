@@ -1,0 +1,109 @@
+/* Your Name & E-mail:Jakin Chan jchan419@ucr.edu
+* Lab Section: 021
+* Assignment: Lab 3  Exercise 4
+* Exercise Description: A0 is button X, A1 is Y, and A2 is #. Press and release #, then press Y should set B2 to ON, unlocking the door. A4 locks the door (sets B2 to 0)
+*
+* I acknowledge all content contained herein, excluding 
+*   template or example code, is my own original work.
+*
+* Demo Link: https://youtu.be/_BgxOYbbVik
+*/
+
+// C++ code
+//
+#define B2 2
+
+enum States{SM_LOCK, SM_RELEASE, SM_POUND, SM_POUND_RELEASE, SM_Y, SM_UNLOCK} state;
+void setup() {
+    pinMode(B2, OUTPUT);
+
+    pinMode(A0, INPUT_PULLUP);
+    pinMode(A1, INPUT_PULLUP);
+    pinMode(A2, INPUT_PULLUP);
+    pinMode(A4, INPUT_PULLUP);
+    state = SM_LOCK;
+    Serial.begin(9600);
+}
+
+
+void Tick(){
+    switch(state){
+        case SM_LOCK:
+            if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == LOW && digitalRead(A4) == LOW){
+                state = SM_RELEASE;
+            }else{
+                state = SM_LOCK;
+            }
+            break;
+        case SM_RELEASE:
+            if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == HIGH && digitalRead(A4) == LOW){
+                state = SM_POUND;
+            }else if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == LOW && digitalRead(A4) == LOW){
+                state = SM_RELEASE;
+            }else if(digitalRead(A0) == HIGH || digitalRead(A1) == HIGH || digitalRead(A4) == HIGH){
+                state = SM_LOCK;
+            }
+            break;
+        case SM_POUND:
+            if(digitalRead(A2) == HIGH && (digitalRead(A0) == HIGH || digitalRead(A1) == HIGH || digitalRead(A4) == HIGH)){
+                state = SM_LOCK;
+            }else if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == LOW && digitalRead(A4) == LOW){
+                state = SM_POUND_RELEASE;
+            }else if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == HIGH && digitalRead(A4) == LOW){
+                state = SM_POUND;
+            }
+            break;
+        case SM_POUND_RELEASE:
+            if(digitalRead(A0) == LOW && digitalRead(A1) == HIGH && digitalRead(A2) == LOW && digitalRead(A4) == LOW){
+                state = SM_Y;
+            }else if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == LOW && digitalRead(A4) == LOW){
+                state = SM_POUND_RELEASE;
+            }else if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == HIGH && digitalRead(A4) == LOW){
+                state = SM_POUND;
+            }else if(digitalRead(A0) == HIGH || digitalRead(A1) == HIGH || digitalRead(A4) == HIGH){
+                state = SM_LOCK;
+            }
+            break;
+        case SM_Y:
+            if(digitalRead(A0) == LOW && digitalRead(A1) == HIGH && digitalRead(A2) == LOW && digitalRead(A4) == LOW){
+                state = SM_Y;
+            }else if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == LOW && digitalRead(A4) == LOW){
+                state = SM_UNLOCK;
+            }else if(digitalRead(A1) == HIGH && (digitalRead(A0) == HIGH || digitalRead(A2) == HIGH || digitalRead(A4) == HIGH)){
+                state = SM_LOCK;
+            }
+            break;
+        case SM_UNLOCK:
+            if(digitalRead(A4) == LOW){
+                state = SM_UNLOCK;
+            }else if(digitalRead(A4) == HIGH){
+                state = SM_LOCK;
+            }
+            break;
+        default:
+            break;
+    }
+
+    switch(state){
+        case SM_LOCK:
+            digitalWrite(B2, LOW);
+            break;
+        case SM_RELEASE:
+            break;
+        case SM_Y:
+            break;
+        case SM_POUND_RELEASE:
+            break;
+        case SM_POUND:
+            break;
+        case SM_UNLOCK:
+            digitalWrite(B2, HIGH);
+            break;
+        default:
+            break;
+    }
+}
+
+void loop() {
+     Tick();
+}

@@ -1,0 +1,143 @@
+/* Your Name & E-mail:Jakin Chan jchan419@ucr.edu
+* Lab Section: 021
+* Assignment: Lab 3  Exercise 3 
+* Exercise Description: 
+*
+* I acknowledge all content contained herein, excluding 
+*   template or example code, is my own original work.
+*
+* Demo Link: https://youtu.be/ZFFJj8cagEw
+*/
+
+// C++ code
+//
+const int b0 = 2;
+const int b1 = 3;
+const int b2 = 4;
+const int b3 = 5;
+const int b4 = 6;
+const int b5 = 7;
+const int b6 = 8;
+const int b7 = 9;
+unsigned char count = 7;
+
+enum States{SM_START, SM_TO_MAX, SM_TO_MIN, SM_WAIT, SM_RESET} state;
+void setup() {
+    pinMode(b0, OUTPUT);
+    pinMode(b1, OUTPUT);
+    pinMode(b2, OUTPUT);
+    pinMode(b3, OUTPUT);
+    pinMode(b4, OUTPUT);
+    pinMode(b5, OUTPUT);
+    pinMode(b6, OUTPUT);
+    pinMode(b7, OUTPUT);
+
+    writeToB(count);
+    pinMode(A0, INPUT_PULLUP);
+    pinMode(A1, INPUT_PULLUP);
+    state = SM_START;
+    Serial.begin(9600);
+}
+
+void writeToB(unsigned char temp){
+    if ((temp>>7) & 0x01){digitalWrite(b7,HIGH);}
+    if ((temp>>6) & 0x01){digitalWrite(b6,HIGH);}
+    if ((temp>>5) & 0x01){digitalWrite(b5,HIGH);}
+    if ((temp>>4) & 0x01){digitalWrite(b4,HIGH);}
+    if ((temp>>3) & 0x01){digitalWrite(b3,HIGH);}
+    if ((temp>>2) & 0x01){digitalWrite(b2,HIGH);}
+    if ((temp>>1) & 0x01){digitalWrite(b1,HIGH);}
+    if (temp & 0x01){digitalWrite(b0,HIGH);}
+}
+
+void resetB(){
+    digitalWrite(b7,LOW);
+    digitalWrite(b6,LOW);
+    digitalWrite(b5,LOW);
+    digitalWrite(b4,LOW);
+    digitalWrite(b3,LOW);
+    digitalWrite(b2,LOW);
+    digitalWrite(b1,LOW);
+    digitalWrite(b0,LOW);
+}
+
+void Tick(){
+    switch(state){
+        case SM_START:
+            state = SM_WAIT;
+            break;
+        case SM_TO_MAX:
+            if(digitalRead(A0) == HIGH && count < 10 && digitalRead(A1) == LOW){
+                state = SM_TO_MAX;
+            }else if(digitalRead(A0) == LOW && digitalRead(A1) == LOW){
+                state = SM_WAIT;
+            }else if(digitalRead(A0) == HIGH && digitalRead(A1) == LOW && count == 10){
+                state = SM_WAIT;
+            }else if(digitalRead(A0) == HIGH && digitalRead(A1) == HIGH){
+                state = SM_RESET;
+            }
+            break;
+        case SM_TO_MIN:
+            if(digitalRead(A0) == LOW && digitalRead(A1) == HIGH && count > 0){
+                state = SM_TO_MIN;
+            }else if(digitalRead(A0) == LOW && digitalRead(A1) == LOW){
+                state = SM_WAIT;
+            }else if(digitalRead(A0) == LOW && digitalRead(A1) == HIGH && count == 0){
+                state = SM_WAIT;
+            }else if(digitalRead(A0) == HIGH && digitalRead(A1) == HIGH){
+                state = SM_RESET;
+            }
+            break;
+        case SM_WAIT:
+            if(digitalRead(A0) == HIGH && digitalRead(A1) == LOW && count < 10){
+                state = SM_TO_MAX;
+            }else if(digitalRead(A0) == LOW && digitalRead(A1) == HIGH && count > 0){
+                state = SM_TO_MIN;
+            }else if(digitalRead(A0) == HIGH && digitalRead(A1) == HIGH){
+                state = SM_RESET;
+            }else if(digitalRead(A0) == LOW && digitalRead(A1) == LOW){
+                state = SM_WAIT;
+            }
+            break;
+        case SM_RESET:
+            state = SM_WAIT;
+            break;
+        default:
+            break;
+    }
+
+    switch(state){
+        case SM_START:
+            count = 7;
+            break;
+        case SM_TO_MAX:
+            if(count < 10){
+                count++;
+                resetB();
+                writeToB(count);
+                delay(200);
+            }
+            break;
+        case SM_TO_MIN:
+            if(count > 0){
+                count--;
+                resetB();
+                writeToB(count);
+                delay(200);
+            }
+            break;
+        case SM_WAIT:
+            break;
+        case SM_RESET:
+            count = 0;
+            resetB();
+            delay(200);
+            break;
+        default:
+            break;
+    }
+}
+
+void loop() {
+     Tick();
+}

@@ -1,0 +1,74 @@
+/* Your Name & E-mail:Jakin Chan jchan419@ucr.edu
+* Lab Section: 021
+* Assignment: Lab 4  Exercise 1
+* Exercise Description: Light up b0, b1, and b2 in sequence, each lighting up for 1 second each
+*
+* I acknowledge all content contained herein, excluding 
+*   template or example code, is my own original work.
+*
+* Demo Link: 
+*/
+
+#define b0 2
+#define b1 3
+#define b2 4
+
+enum States {SM_START, SM_B0, SM_B1, SM_B2} state;
+void setup() {
+  pinMode(b0, OUTPUT);
+  pinMode(b1, OUTPUT);
+  pinMode(b2, OUTPUT);
+
+  digitalWrite(b0, LOW);
+  digitalWrite(b1, LOW);
+  digitalWrite(b2, LOW);
+  state = SM_START;
+  
+  Serial.begin(9600);
+}
+
+void Tick(){
+  switch(state){
+      case SM_START:
+          state = SM_B0;
+          break;
+      case SM_B0:
+          state = SM_B1;
+          break;
+      case SM_B1:
+          state = SM_B2;
+          break;
+      case SM_B2:
+          state = SM_B0;
+          break;
+      default:
+          break;
+  }    
+
+  switch(state){
+     case SM_START:
+         break;
+     case SM_B0:
+         digitalWrite(b0, HIGH);
+         digitalWrite(b1, LOW);
+         digitalWrite(b2, LOW);
+         break;
+     case SM_B1:
+         digitalWrite(b0, LOW);
+         digitalWrite(b1, HIGH);
+         digitalWrite(b2, LOW);
+         break;
+     case SM_B2:
+         digitalWrite(b0, LOW);
+         digitalWrite(b1, LOW);
+         digitalWrite(b2, HIGH);
+         break;
+     default:
+         break;
+  }
+}
+
+void loop() {
+  Tick();
+  delay(1000);
+}

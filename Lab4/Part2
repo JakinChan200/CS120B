@@ -1,0 +1,115 @@
+/* Your Name & E-mail:Jakin Chan jchan419@ucr.edu
+* Lab Section: 021
+* Assignment: Lab 4  Exercise 2
+* Exercise Description: Light up b2, b3, and b4 in sequence, each lighting up for 300 ms each If A0 is pressed, the current light stays on. 
+* Pressing it again resets the game
+*
+* I acknowledge all content contained herein, excluding 
+*   template or example code, is my own original work.
+*
+* Demo Link: 
+*/
+
+#define b0 2
+#define b1 3
+#define b2 4
+#define b3 5
+#define b4 6
+#define b5 7
+
+enum States {SM_RESET, SM_B2, SM_B3, SM_B4, SM_END, SM_END_RELEASE} state;
+void setup() {
+  pinMode(b2, OUTPUT);
+  pinMode(b3, OUTPUT);
+  pinMode(b4, OUTPUT);
+
+  digitalWrite(b2, LOW);
+  digitalWrite(b3, LOW);
+  digitalWrite(b4, LOW);
+  state = SM_B2;
+  
+  Serial.begin(9600);
+}
+
+void Tick(){
+  switch(state){
+      case SM_RESET:
+          if(digitalRead(A0) == LOW){
+              state = SM_B2;
+          }else if(digitalRead(A0) == HIGH){
+              state = SM_RESET;
+          }
+          break;
+      case SM_B2:
+          if(digitalRead(A0) == LOW){
+              state = SM_B3;
+          }else if(digitalRead(A0) == HIGH){
+              state = SM_END;
+          }
+          break;
+      case SM_B3:
+          if(digitalRead(A0) == LOW){
+              state = SM_B4;
+          }else if(digitalRead(A0) == HIGH){
+              state = SM_END;
+          }
+          break;
+      case SM_B4:
+          if(digitalRead(A0) == LOW){
+              state = SM_B2;
+          }else if(digitalRead(A0) == HIGH){
+              state = SM_END;
+          }
+          break;
+      case SM_END:
+          if(digitalRead(A0) == LOW){
+              state = SM_END_RELEASE;
+          }else if(digitalRead(A0) == HIGH){
+              state = SM_END;
+          }
+          break;
+      case SM_END_RELEASE:
+          if(digitalRead(A0) == LOW){
+              state = SM_END_RELEASE;
+          }else if(digitalRead(A0) == HIGH){
+              state = SM_RESET;
+          }
+          break;
+      default:
+          break;
+  }    
+
+  switch(state){
+     case SM_RESET:
+         digitalWrite(b2, LOW);
+         digitalWrite(b3, LOW);
+         digitalWrite(b4, LOW);
+         break;
+     case SM_B2:
+         digitalWrite(b2, HIGH);
+         digitalWrite(b3, LOW);
+         digitalWrite(b4, LOW);
+         break;
+     case SM_B3:
+         digitalWrite(b2, LOW);
+         digitalWrite(b3, HIGH);
+         digitalWrite(b4, LOW);
+         break;
+     case SM_B4:
+         digitalWrite(b2, LOW);
+         digitalWrite(b3, LOW);
+         digitalWrite(b4, HIGH);
+         break;
+     case SM_END:
+         break;
+     case SM_END_RELEASE:
+         break;
+     default:
+         break;
+  }
+}
+
+void loop() {
+  Tick();
+  delay(300);
+}

@@ -1,0 +1,163 @@
+/* Your Name & E-mail:Jakin Chan jchan419@ucr.edu
+* Lab Section: 021
+* Assignment: Lab 4  Exercise 3
+* Exercise Description: Buttons are connected to A0 and A1. LEDs B0-B7 is at 7. pressing A0 increments LED by one. Holding it continues to incrementonce per second, up to 9
+* Pressing A1 decrements the LEDs by one. Holding it continues to decrement it once per second, down to 0. Holding both resets LEDs to 0; Period is 100ms.
+*
+* I acknowledge all content contained herein, excluding 
+*   template or example code, is my own original work.
+*
+* Demo Link: 
+*/
+
+#define b0 2
+#define b1 3
+#define b2 4
+#define b3 5
+#define b4 6
+#define b5 7
+#define b6 8
+#define b7 9
+
+enum States {SM_START, SM_A0_PRESS, SM_A1_PRESS, SM_WAIT, SM_RESET} state;
+unsigned char counter = 7;
+unsigned char timerCounter = 0;
+void setup() {
+  pinMode(b0, OUTPUT);
+  pinMode(b1, OUTPUT);
+  pinMode(b2, OUTPUT);
+  pinMode(b3, OUTPUT);
+  pinMode(b4, OUTPUT);
+  pinMode(b5, OUTPUT);
+  pinMode(b6, OUTPUT);
+  pinMode(b7, OUTPUT);
+
+  pinMode(A0, INPUT_PULLUP);
+  pinMode(A1, INPUT_PULLUP);
+
+  digitalWrite(b0, LOW);
+  digitalWrite(b1, LOW);
+  digitalWrite(b2, LOW);
+  digitalWrite(b3, LOW);
+  state = SM_START;
+  
+  Serial.begin(9600);
+}
+
+void writeToB(unsigned char temp){
+    if ((temp>>7) & 0x01){digitalWrite(b7,HIGH);}
+    if ((temp>>6) & 0x01){digitalWrite(b6,HIGH);}
+    if ((temp>>5) & 0x01){digitalWrite(b5,HIGH);}
+    if ((temp>>4) & 0x01){digitalWrite(b4,HIGH);}
+    if ((temp>>3) & 0x01){digitalWrite(b3,HIGH);}
+    if ((temp>>2) & 0x01){digitalWrite(b2,HIGH);}
+    if ((temp>>1) & 0x01){digitalWrite(b1,HIGH);}
+    if (temp & 0x01){digitalWrite(b0,HIGH);}
+}
+
+void resetB(){
+    digitalWrite(b0, LOW);
+    digitalWrite(b1, LOW);
+    digitalWrite(b2, LOW);
+    digitalWrite(b3, LOW);
+    digitalWrite(b4, LOW);
+    digitalWrite(b5, LOW);
+    digitalWrite(b6, LOW);
+    digitalWrite(b7, LOW);
+}
+
+void Tick(){
+  switch(state){
+      case SM_START:
+          state = SM_WAIT;
+          break;
+      case SM_WAIT:
+          if(digitalRead(A0) == LOW && digitalRead(A1) == LOW){
+              state = SM_WAIT;
+          }else if(digitalRead(A0) == HIGH && digitalRead(A1) == LOW && counter < 9){
+              state = SM_A0_PRESS;
+          }else if(digitalRead(A0) == LOW && digitalRead(A1) == HIGH && counter > 0){
+              state = SM_A1_PRESS;
+          }else if(digitalRead(A0) == HIGH && digitalRead(A1) == HIGH){
+              state = SM_RESET;
+          }
+          break;
+      case SM_A0_PRESS:
+          if(digitalRead(A0) == LOW && digitalRead(A1) == LOW){
+              state = SM_WAIT;
+          }else if(digitalRead(A0) == HIGH && digitalRead(A1) == LOW && counter < 9){
+              state = SM_A0_PRESS;
+          }else if(digitalRead(A0) == LOW && digitalRead(A1) == HIGH && counter > 0){
+              state = SM_A1_PRESS;
+              timerCounter = 0;
+          }else if(digitalRead(A0) == HIGH && digitalRead(A1) == HIGH){
+              state = SM_RESET;
+          }else if(digitalRead(A0) == HIGH && counter >= 9 || digitalRead(A1) == HIGH && counter <= 0){
+              state = SM_WAIT;
+          }
+          break;
+      case SM_A1_PRESS:
+          if(digitalRead(A0) == LOW && digitalRead(A1) == LOW){
+              state = SM_WAIT;
+          }else if(digitalRead(A0) == HIGH && digitalRead(A1) == LOW && counter < 9){
+              state = SM_A0_PRESS;
+              timerCounter = 0;
+          }else if(digitalRead(A0) == LOW && digitalRead(A1) == HIGH && counter > 0){
+              state = SM_A1_PRESS;
+          }else if(digitalRead(A0) == HIGH && digitalRead(A1) == HIGH){
+              state = SM_RESET;
+          }else if(digitalRead(A1) == HIGH && counter <= 0 || digitalRead(A0) == HIGH && counter >= 9){
+              state = SM_WAIT;
+          }
+          break;
+      case SM_RESET:
+          state = SM_RESET;
+          break;
+      default:
+          break;
+  }    
+
+  switch(state){
+     case SM_START:
+         break;
+     case SM_WAIT:
+         timerCounter = 0;
+         resetB();
+         writeToB(counter);
+         break;
+     case SM_A0_PRESS:
+         if(timerCounter == 0){
+             counter++;
+         }
+         if(timerCounter >= 10){
+             timerCounter = 0;
+         }else{
+             timerCounter++;
+         }
+         resetB();
+         writeToB(counter);
+         break;
+     case SM_A1_PRESS:
+         if(timerCounter == 0){
+             counter--;
+         }
+         if(timerCounter >= 10){
+             timerCounter = 0;
+         }else{
+             timerCounter++;
+         }
+         resetB();
+         writeToB(counter);
+         break;
+     case SM_RESET:
+         resetB();
+         break;
+     default:
+         break;
+  }
+}
+
+void loop() {
+  Tick();
+  delay(100);
+}

@@ -1,0 +1,191 @@
+/* Your Name & E-mail:Jakin Chan jchan419@ucr.edu
+* Lab Section: 021
+* Assignment: Lab 4  Exercise 4
+* Exercise Description: One of B0-B3 will light up every 500 ms. If the corresponding button A0-A3 is not pressed in that time frame, B4 lights up and everything else is off.
+*
+* I acknowledge all content contained herein, excluding 
+*   template or example code, is my own original work.
+*
+* Demo Link: 
+*/
+
+#define b0 2
+#define b1 3
+#define b2 4
+#define b3 5
+#define b4 6
+#define b5 7
+#define b6 8
+#define b7 9
+
+enum States {SM_START, SM_B0, SM_B1, SM_B2, SM_B3, SM_END} state;
+unsigned char newLightCounter = 10;
+unsigned char buttonTimer = 0;
+unsigned char randomInt = random(0, 4);
+void setup() {
+  pinMode(b0, OUTPUT);
+  pinMode(b1, OUTPUT);
+  pinMode(b2, OUTPUT);
+  pinMode(b3, OUTPUT);
+  pinMode(b4, OUTPUT);
+  pinMode(b5, OUTPUT);
+  pinMode(b6, OUTPUT);
+  pinMode(b7, OUTPUT);
+
+  pinMode(A0, INPUT_PULLUP);
+  pinMode(A1, INPUT_PULLUP);
+  pinMode(A2, INPUT_PULLUP);
+  pinMode(A3, INPUT_PULLUP);
+
+  digitalWrite(b0, LOW);
+  digitalWrite(b1, LOW);
+  digitalWrite(b2, LOW);
+  digitalWrite(b3, LOW);
+  state = SM_START;
+  
+  Serial.begin(9600);
+}
+
+void writeToB(unsigned char temp){
+    resetB();
+    if ((temp>>7) & 0x01){digitalWrite(b7,HIGH);}
+    if ((temp>>6) & 0x01){digitalWrite(b6,HIGH);}
+    if ((temp>>5) & 0x01){digitalWrite(b5,HIGH);}
+    if ((temp>>4) & 0x01){digitalWrite(b4,HIGH);}
+    if ((temp>>3) & 0x01){digitalWrite(b3,HIGH);}
+    if ((temp>>2) & 0x01){digitalWrite(b2,HIGH);}
+    if ((temp>>1) & 0x01){digitalWrite(b1,HIGH);}
+    if (temp & 0x01){digitalWrite(b0,HIGH);}
+}
+
+void resetB(){
+    digitalWrite(b0, LOW);
+    digitalWrite(b1, LOW);
+    digitalWrite(b2, LOW);
+    digitalWrite(b3, LOW);
+    digitalWrite(b4, LOW);
+    digitalWrite(b5, LOW);
+    digitalWrite(b6, LOW);
+    digitalWrite(b7, LOW);
+}
+
+void Tick(){
+  switch(state){
+      case SM_START:
+          if(digitalRead(A0) == HIGH && randomInt == 0){
+              state = SM_B1;
+          }else if(digitalRead(A1) == HIGH && randomInt == 1){
+              state = SM_B2;
+          }else if(digitalRead(A2) == HIGH && randomInt == 2){
+              state = SM_B3;
+          }else if(digitalRead(A3) == HIGH && randomInt == 3){
+              state = SM_B0;
+          }else{
+              state = SM_START;
+          }
+          break;
+      case SM_B0:
+          if(digitalRead(A0) == HIGH && digitalRead(A1) == LOW && digitalRead(A2) == LOW && digitalRead(A3) == LOW){
+              state = SM_B1;
+              buttonTimer = 0;
+          }else if(buttonTimer >= 5){
+              state = SM_END;
+          }else if(buttonTimer < 5 && digitalRead(A0) == LOW){
+              state = SM_B0;
+          }
+          break;
+      case SM_B1:
+          if(digitalRead(A0) == LOW && digitalRead(A1) == HIGH && digitalRead(A2) == LOW && digitalRead(A3) == LOW){
+              state = SM_B2;
+              buttonTimer = 0;
+          }else if(buttonTimer >= 5){
+              state = SM_END;
+          }else if(buttonTimer < 5 && digitalRead(A1) == LOW){
+              state = SM_B1;
+          }
+          break;
+      case SM_B2:
+          if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == HIGH && digitalRead(A3) == LOW){
+              state = SM_B3;
+              buttonTimer = 0;
+          }else if(buttonTimer >= 5){
+              state = SM_END;
+          }else if(buttonTimer < 5 && digitalRead(A2) == LOW){
+              state = SM_B2;
+          }
+          break;
+      case SM_B3:
+          if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == LOW && digitalRead(A3) == HIGH){
+              state = SM_B0;
+              buttonTimer = 0;
+          }else if(buttonTimer >= 5){
+              state = SM_END;
+          }else if(buttonTimer < 5 && digitalRead(A3) == LOW){
+              state = SM_B3;
+          }
+          break;
+      case SM_END:
+          state = SM_END;
+          break;
+      default:
+          break;
+  }    
+
+  switch(state){
+     case SM_START:
+         if(newLightCounter == 10){
+             randomInt = random(0, 4);
+             newLightCounter = 0;
+             if(randomInt == 0){
+                 writeToB(1);
+             }else if(randomInt == 1){
+                 writeToB(2);
+             }else if(randomInt == 2){
+                 writeToB(4);
+             }else if(randomInt == 3){
+                 writeToB(8);
+             }
+         }
+         newLightCounter++;
+         break;
+     case SM_B0:
+         writeToB(1);
+         buttonTimer++;
+         break;
+     case SM_B1:
+         writeToB(2);
+         buttonTimer++;
+         break;
+     case SM_B2:
+         writeToB(4);
+         buttonTimer++;
+         break;
+     case SM_B3:
+         writeToB(8);
+         buttonTimer++;
+         break;
+     case SM_END:
+         writeToB(16);
+         break;
+     default:
+         break;
+  }
+  
+  if(digitalRead(A0) == HIGH){
+      digitalWrite(b0, HIGH);
+  }
+  if(digitalRead(A1) == HIGH){
+      digitalWrite(b1, HIGH);
+  }
+  if(digitalRead(A2) == HIGH){
+      digitalWrite(b2, HIGH);
+  }
+    if(digitalRead(A3) == HIGH){
+      digitalWrite(b3, HIGH);
+  }
+}
+
+void loop() {
+  Tick();
+  delay(100);
+}

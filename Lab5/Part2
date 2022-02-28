@@ -1,0 +1,59 @@
+/* Your Name & E-mail:Jakin Chan jchan419@ucr.edu
+* Lab Section: 021
+* Assignment: Lab 5  Exercise 2
+* Exercise Description: Map the turn of the Potentiometer onto a servo motor
+*
+* I acknowledge all content contained herein, excluding 
+*   template or example code, is my own original work.
+*
+* Demo Link: https://youtu.be/1040AmvMr48
+*/
+
+#include <Servo.h>
+#define motorPin 2
+Servo motor;
+int potentiometer;
+int value;
+
+enum States{SM_START, SM_READ, SM_MOTOR} state;
+void setup() {
+  motor.attach(motorPin);
+  
+  Serial.begin(9600);
+}
+
+void Tick(){
+  switch(state){
+      case SM_START:
+          state = SM_READ;
+          break;
+      case SM_READ:
+          state = SM_MOTOR;
+          break;
+      case SM_MOTOR:
+          state = SM_READ;
+          break;
+      default:
+          break;
+  }  
+
+  switch(state){
+      case SM_START:
+          break;
+      case SM_READ:
+          potentiometer = analogRead(A0);
+          break;
+      case SM_MOTOR:
+          value = (180./1023.)*potentiometer;
+          motor.write(value);
+          break;
+      default:
+          break;
+  }
+}
+
+void loop() {
+  Tick();
+  Serial.println(value);
+  delay(100);
+}

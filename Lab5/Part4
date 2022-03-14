@@ -1,0 +1,62 @@
+/* Your Name & E-mail:Jakin Chan jchan419@ucr.edu
+* Lab Section: 021
+* Assignment: Lab 5  Exercise 4
+* Exercise Description: Light B0 when the photoresister > max/2 (75), and turn it off when not
+*
+* I acknowledge all content contained herein, excluding 
+*   template or example code, is my own original work.
+*
+* Demo Link: https://youtu.be/usi9_du8dzQ
+*/
+
+#include <Servo.h>
+#define b0 2
+#define MAX 420
+int photoresistor = A0;
+
+enum States{SM_START, SM_READ, SM_LEDS} state;
+void setup() {
+  pinMode(b0, OUTPUT);
+
+  digitalWrite(b0, LOW);
+  Serial.begin(9600);
+}
+
+void Tick(){
+  switch(state){
+      case SM_START:
+          state = SM_READ;
+          break;
+      case SM_READ:
+          state = SM_LEDS;
+          break;
+      case SM_LEDS:
+          state = SM_READ;
+          break;
+      default:
+          break;
+  }  
+
+  switch(state){
+      case SM_START:
+          break;
+      case SM_READ:
+          photoresistor = analogRead(A0);
+          break;
+      case SM_LEDS:
+          if(photoresistor >= MAX/2){
+              digitalWrite(b0, HIGH);
+          }else if(photoresistor < MAX/2){
+              digitalWrite(b0, LOW);
+          }
+          Serial.println(photoresistor);
+          break;
+      default:
+          break;
+  }
+}
+
+void loop() {
+  Tick();
+  delay(50);
+}

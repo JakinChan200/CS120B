@@ -1,0 +1,193 @@
+/* Your Name & E-mail:Jakin Chan jchan419@ucr.edu
+* Lab Section: 021
+* Assignment: Lab 6  Exercise 2
+* Exercise Description: Have 2 lightshows run, but make them run with different periods
+*
+* I acknowledge all content contained herein, excluding 
+*   template or example code, is my own original work.
+*
+* Demo Link:
+*/
+
+#define b0 2
+#define b1 3
+#define b2 4
+#define b3 5
+#define b4 6
+#define b5 7
+#define b6 8
+#define b7 9
+
+typedef struct task{
+    int state;
+    unsigned long period;
+    unsigned long elapsedTime;
+    int (*TickFct)(int);
+}task;
+
+const unsigned short taskNum = 2;
+task tasks[taskNum];
+
+enum SHOW_1{SM1_SLIDE1, SM1_SLIDE2, SM1_SLIDE3, SM1_SLIDE4, SM1_SLIDE5};
+enum SHOW_2{SM2_SLIDE1, SM2_SLIDE2, SM2_SLIDE3, SM2_SLIDE4, SM2_SLIDE5};
+
+void setup() {
+    pinMode(b0, OUTPUT);
+    pinMode(b1, OUTPUT);
+    pinMode(b2, OUTPUT);
+    pinMode(b3, OUTPUT);
+    pinMode(b4, OUTPUT);
+    pinMode(b5, OUTPUT);
+    pinMode(b6, OUTPUT);
+    pinMode(b7, OUTPUT);
+    
+    digitalWrite(b0, LOW);
+    digitalWrite(b1, LOW);
+    digitalWrite(b2, LOW);
+    digitalWrite(b3, LOW);
+    digitalWrite(b4, LOW);
+    digitalWrite(b5, LOW);
+    digitalWrite(b6, LOW);
+    digitalWrite(b7, LOW);
+    
+    //pinMode(A0, INPUT_PULLUP);
+    Serial.begin(9600);
+
+    unsigned char i = 0;
+    tasks[i].state = SM1_SLIDE1;
+    tasks[i].period = 500;
+    tasks[i].elapsedTime = 500;
+    tasks[i].TickFct = &Tick1;
+    i++;
+    tasks[i].state = SM2_SLIDE1;
+    tasks[i].period = 1000;
+    tasks[i].elapsedTime = 1000;
+    tasks[i].TickFct = &Tick2;
+}
+
+int Tick1(int state){
+    switch(state){
+        case SM1_SLIDE1:
+            state = SM1_SLIDE2;
+            break;
+        case SM1_SLIDE2:
+            state = SM1_SLIDE3;
+            break;
+        case SM1_SLIDE3:
+            state = SM1_SLIDE4;
+            break;
+        case SM1_SLIDE4:
+            state = SM1_SLIDE5;
+            break;
+        case SM1_SLIDE5:
+            state = SM1_SLIDE1;
+        default:
+            break;
+    }
+
+    switch(state){
+        case SM1_SLIDE1:
+            digitalWrite(b0, HIGH);
+            digitalWrite(b1, LOW);
+            digitalWrite(b2, LOW);
+            digitalWrite(b3, LOW);
+            break;
+        case SM1_SLIDE2:
+            digitalWrite(b0, LOW);
+            digitalWrite(b1, HIGH);
+            digitalWrite(b2, LOW);
+            digitalWrite(b3, LOW);
+            break;
+        case SM1_SLIDE3:
+            digitalWrite(b0, LOW);
+            digitalWrite(b1, LOW);
+            digitalWrite(b2, HIGH);
+            digitalWrite(b3, LOW);
+            break;
+        case SM1_SLIDE4:
+            digitalWrite(b0, LOW);
+            digitalWrite(b1, LOW);
+            digitalWrite(b2, LOW);
+            digitalWrite(b3, HIGH);
+            break;
+        case SM1_SLIDE5:
+            digitalWrite(b0, HIGH);
+            digitalWrite(b1, HIGH);
+            digitalWrite(b2, HIGH);
+            digitalWrite(b3, HIGH);
+            break;
+        default:
+            break;
+    }
+    return state;
+}
+
+int Tick2(int state){
+    switch(state){
+        case SM2_SLIDE1:
+            state = SM2_SLIDE2;
+            break;
+        case SM2_SLIDE2:
+            state = SM2_SLIDE3;
+            break;
+        case SM2_SLIDE3:
+            state = SM2_SLIDE4;
+            break;
+        case SM2_SLIDE4:
+            state = SM2_SLIDE5;
+            break;
+        case SM2_SLIDE5:
+            state = SM2_SLIDE1;
+        default:
+            break;
+    }
+
+    switch(state){
+        case SM2_SLIDE1:
+            digitalWrite(b4, LOW);
+            digitalWrite(b5, HIGH);
+            digitalWrite(b6, LOW);
+            digitalWrite(b7, LOW);
+            break;
+        case SM2_SLIDE2:
+            digitalWrite(b4, LOW);
+            digitalWrite(b5, LOW);
+            digitalWrite(b6, LOW);
+            digitalWrite(b7, HIGH);
+            break;
+        case SM2_SLIDE3:
+            digitalWrite(b4, LOW);
+            digitalWrite(b5, LOW);
+            digitalWrite(b6, HIGH);
+            digitalWrite(b7, LOW);
+            break;
+        case SM2_SLIDE4:
+            digitalWrite(b4, HIGH);
+            digitalWrite(b5, LOW);
+            digitalWrite(b6, LOW);
+            digitalWrite(b7, LOW);
+            break;
+        case SM2_SLIDE5:
+            digitalWrite(b4, LOW);
+            digitalWrite(b5, HIGH);
+            digitalWrite(b6, HIGH);
+            digitalWrite(b7, LOW);
+            break;
+        default:
+            break;
+    
+    }
+    return state;
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  unsigned char i;
+  for (i = 0; i < taskNum; ++i) {
+    if ( (millis() - tasks[i].elapsedTime) >= tasks[i].period) {
+        tasks[i].state = tasks[i].TickFct(tasks[i].state);
+        tasks[i].elapsedTime = millis(); // Last time this task was ran
+    }
+  }
+  delay(500);
+}

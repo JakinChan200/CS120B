@@ -1,0 +1,163 @@
+/* Your Name & E-mail:Jakin Chan jchan419@ucr.edu
+* Lab Section: 021
+* Assignment: Lab 6  Exercise 1
+* Exercise Description: Setup a lightshow like a slideshow where the lights change when A0 is pressed. Holding A0 does nothing
+*
+* I acknowledge all content contained herein, excluding 
+*   template or example code, is my own original work.
+*
+* Demo Link: https://youtu.be/jLECL-l0LD0
+*/
+
+#define b0 2
+#define b1 3
+#define b2 4
+#define b3 5
+#define b4 6
+#define b5 7
+#define b6 8
+#define b7 9
+
+typedef struct task {
+  int state;
+  unsigned long period;
+  unsigned long elapsedTime;
+  int (*TickFct)(int);
+} task;
+
+
+const unsigned short tasksNum = 1;
+task tasks[tasksNum];
+
+enum States {SM_P1, SM_P2, SM_P3, SM_P4, SM_P5} state;
+void setup() {
+    pinMode(b0, OUTPUT);
+    pinMode(b1, OUTPUT);
+    pinMode(b2, OUTPUT);
+    pinMode(b3, OUTPUT);
+    pinMode(b4, OUTPUT);
+    pinMode(b5, OUTPUT);
+    pinMode(b6, OUTPUT);
+    pinMode(b7, OUTPUT);
+    
+    digitalWrite(b0, LOW);
+    digitalWrite(b1, LOW);
+    digitalWrite(b2, LOW);
+    digitalWrite(b3, LOW);
+    digitalWrite(b4, LOW);
+    digitalWrite(b5, LOW);
+    digitalWrite(b6, LOW);
+    digitalWrite(b7, LOW);
+    
+    //pinMode(A0, INPUT_PULLUP);
+    Serial.begin(9600);
+
+    unsigned char i = 0;
+    tasks[i].state = SM_P1;
+    tasks[i].period = 200;
+    tasks[i].elapsedTime = 0;
+    tasks[i].TickFct = &Tick1;
+}
+
+void resetB(){
+    digitalWrite(b0,LOW);
+    digitalWrite(b1,LOW);
+    digitalWrite(b2,LOW);
+    digitalWrite(b3,LOW);
+    digitalWrite(b4,LOW);
+    digitalWrite(b5,LOW);
+    digitalWrite(b6,LOW);
+    digitalWrite(b7,LOW);
+}
+
+int Tick1(int state){
+    switch(state){
+        case SM_P1:
+            state = SM_P2;
+            break;
+        case SM_P2:
+            state = SM_P3;
+            break;
+        case SM_P3:
+            state = SM_P4;
+            break;
+        case SM_P4:
+            state = SM_P5;
+            break;
+        case SM_P5:
+            state = SM_P1;
+        default:
+            break;
+    }
+
+    switch(state){
+        case SM_P1:
+            resetB();
+            digitalWrite(b0, HIGH);
+            digitalWrite(b1, HIGH);
+            digitalWrite(b2, LOW);
+            digitalWrite(b3, LOW);
+            digitalWrite(b4, LOW);
+            digitalWrite(b5, LOW);
+            digitalWrite(b6, LOW);
+            digitalWrite(b7, LOW);
+            break;
+        case SM_P2:
+            resetB();
+            digitalWrite(b0, LOW);
+            digitalWrite(b1, LOW);
+            digitalWrite(b2, HIGH);
+            digitalWrite(b3, HIGH);
+            digitalWrite(b4, LOW);
+            digitalWrite(b5, LOW);
+            digitalWrite(b6, LOW);
+            digitalWrite(b7, LOW);
+            break;
+        case SM_P3:
+            resetB();
+            digitalWrite(b0, LOW);
+            digitalWrite(b1, LOW);
+            digitalWrite(b2, LOW);
+            digitalWrite(b3, LOW);
+            digitalWrite(b4, HIGH);
+            digitalWrite(b5, HIGH);
+            digitalWrite(b6, LOW);
+            digitalWrite(b7, LOW);
+            break;
+        case SM_P4:
+            resetB();
+            digitalWrite(b0, LOW);
+            digitalWrite(b1, LOW);
+            digitalWrite(b2, LOW);
+            digitalWrite(b3, LOW);
+            digitalWrite(b4, LOW);
+            digitalWrite(b5, LOW);
+            digitalWrite(b6, HIGH);
+            digitalWrite(b7, HIGH);
+            break;
+        case SM_P5:
+            resetB();
+            digitalWrite(b0, HIGH);
+            digitalWrite(b1, LOW);
+            digitalWrite(b2, LOW);
+            digitalWrite(b3, LOW);
+            digitalWrite(b4, LOW);
+            digitalWrite(b5, LOW);
+            digitalWrite(b6, LOW);
+            digitalWrite(b7, HIGH);
+            break;
+        default:
+            break;
+    }
+    return state;
+}
+void loop(){
+  unsigned char i;
+  for (i = 0; i < tasksNum; ++i) {
+    if ( (millis() - tasks[i].elapsedTime) >= tasks[i].period) {
+        tasks[i].state = tasks[i].TickFct(tasks[i].state);
+        tasks[i].elapsedTime = millis(); // Last time this task was ran
+    }
+  }
+  delay(100);
+}

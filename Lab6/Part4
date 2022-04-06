@@ -1,0 +1,199 @@
+/* Your Name & E-mail:Jakin Chan jchan419@ucr.edu
+* Lab Section: 021
+* Assignment: Lab 3  Exercise 4
+* Exercise Description: 4 digit combination to unlock (servo 0), same 4 digit to lock (servo 180). When light levels below 200, turn on LED
+*Combp: A1, A2, A0, A3
+*
+* I acknowledge all content contained herein, excluding 
+*   template or example code, is my own original work.
+*
+* Demo Link: 
+*/
+
+#include <Servo.h>
+#define MAX 420
+#define motorPin 2
+#define light 3
+int photoresistor = 0;
+unsigned char isLocked = 1;
+
+typedef struct task{
+    int state;
+    unsigned long period;
+    unsigned long elapsedTime;
+    int (*TickFct)(int);
+}task;
+
+const unsigned short tasksNum = 2;
+task tasks[tasksNum];
+enum SM1_STATES{SM_LOCK, SM_A1_PRESS, SM_A1_RELEASE, SM_A2_PRESS, SM_A2_RELEASE, SM_A0_PRESS, SM_A0_RELEASE, SM_A3_PRESS, SM_UNLOCK};
+enum SM2_STATES{SM_LEDS};
+Servo motor;
+
+void setup() {
+  unsigned char i = 0;
+  tasks[i].state = SM_LOCK;
+  tasks[i].period = 100;
+  tasks[i].elapsedTime = 0;
+  tasks[i].TickFct = &Tick;
+  ++i;
+  tasks[i].state = SM_LEDS;
+  tasks[i].period = 100;
+  tasks[i].elapsedTime = 0;
+  tasks[i].TickFct = &TickLED;
+  motor.attach(motorPin);
+
+  pinMode(light, OUTPUT);
+  digitalWrite(light, LOW);
+  Serial.begin(9600);
+}
+
+int Tick(int state){
+    switch(state){
+        case SM_LOCK:
+            if(digitalRead(A0) == LOW && digitalRead(A1) == HIGH && digitalRead(A2) == LOW && digitalRead(A3) == LOW){
+                state = SM_A1_PRESS;
+            }else{
+                state = SM_LOCK;
+            }
+            break;
+        case SM_A1_PRESS:
+            if(digitalRead(A0) == LOW && digitalRead(A1) == HIGH && digitalRead(A2) == LOW && digitalRead(A3) == LOW){
+                state = SM_A1_PRESS;
+            }else if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == LOW && digitalRead(A3) == LOW){
+                state = SM_A1_RELEASE;
+            }else if(digitalRead((A0) == HIGH || digitalRead(A2) == HIGH || digitalRead(A3) == HIGH)){
+                state = (isLocked) ? SM_LOCK : SM_UNLOCK;
+            }
+            break;
+        case SM_A1_RELEASE:
+            if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == LOW && digitalRead(A3) == LOW){
+                state = SM_A1_RELEASE;
+            }else if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == HIGH && digitalRead(A3) == LOW){
+                state = SM_A2_PRESS;
+            }else if(digitalRead(A0) == HIGH || digitalRead(A1) == HIGH || digitalRead(A3) == HIGH){
+                 state = (isLocked) ? SM_LOCK : SM_UNLOCK;
+            }
+            break;
+        case SM_A2_PRESS:
+            if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == HIGH && digitalRead(A3) == LOW){
+                state = SM_A2_PRESS;
+            }else if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == LOW && digitalRead(A3) == LOW){
+                state = SM_A2_RELEASE;
+            }else if(digitalRead(A0) == HIGH || digitalRead(A1) == HIGH || digitalRead(A3) == HIGH){
+                 state = (isLocked) ? SM_LOCK : SM_UNLOCK;
+            }
+            break;
+        case SM_A2_RELEASE:
+            if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == LOW && digitalRead(A3) == LOW){
+                state = SM_A2_RELEASE;
+            }else if(digitalRead(A0) == HIGH && digitalRead(A1) == LOW && digitalRead(A2) == LOW && digitalRead(A3) == LOW){
+                state = SM_A0_PRESS;
+            }else if(digitalRead(A1) == HIGH || digitalRead(A2) == HIGH || digitalRead(A3) == HIGH){
+                 state = (isLocked) ? SM_LOCK : SM_UNLOCK;
+            }
+            break;
+        case SM_A0_PRESS:
+            if(digitalRead(A0) == HIGH && digitalRead(A1) == LOW && digitalRead(A2) == LOW && digitalRead(A3) == LOW){
+                state = SM_A0_PRESS;
+            }else if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == LOW && digitalRead(A3) == LOW){
+                state = SM_A0_RELEASE;
+            }else if(digitalRead(A1) == HIGH || digitalRead(A2) == HIGH || digitalRead(A3) == HIGH){
+                 state = (isLocked) ? SM_LOCK : SM_UNLOCK;
+            }
+            break;
+        case SM_A0_RELEASE:
+            if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == LOW && digitalRead(A3) == LOW){
+                state = SM_A0_RELEASE;
+            }else if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == LOW && digitalRead(A3) == HIGH){
+                state = SM_A3_PRESS;
+            }else if(digitalRead(A0) == HIGH || digitalRead(A1) == HIGH || digitalRead(A2) == HIGH){
+                 state = (isLocked) ? SM_LOCK : SM_UNLOCK;
+            }
+            break;
+        case SM_A3_PRESS:
+            if(digitalRead(A0) == LOW && digitalRead(A1) == HIGH && digitalRead(A2) == LOW && digitalRead(A3) == HIGH){
+                state = SM_A3_PRESS;
+            }else if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == LOW && digitalRead(A3) == LOW){
+                state = (isLocked) ? SM_UNLOCK : SM_LOCK;
+            }else if(digitalRead(A0) == HIGH || digitalRead(A1) == HIGH || digitalRead(A2) == HIGH){
+                state = (isLocked) ? SM_LOCK : SM_UNLOCK;
+            }
+            break;
+        case SM_UNLOCK:
+            if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == LOW && digitalRead(A3) == LOW){
+                state = SM_UNLOCK;
+            }else if(digitalRead(A0) == LOW && digitalRead(A1) == HIGH && digitalRead(A2) == LOW && digitalRead(A3) == LOW){
+                state = SM_A1_PRESS;
+            }
+            break;
+        default:
+            break;
+    }
+
+    switch(state){
+        case SM_LOCK:
+            isLocked = 1;
+            motor.write(180);
+            break;
+        case SM_A1_PRESS:
+            break;
+        case SM_A1_RELEASE:
+            break;
+        case SM_A2_PRESS:
+            break;
+        case SM_A2_RELEASE:
+            break;
+        case SM_A0_PRESS:
+            break;
+        case SM_A0_RELEASE:
+            break;
+        case SM_A3_PRESS:
+            break;
+        case SM_UNLOCK:
+            isLocked = 0;
+            motor.write(0);
+            break;
+        default:
+            break;
+    }
+    //Serial.println(isLocked);
+    return state;
+}
+
+int TickLED(int state){
+  switch(state){
+      case SM_LEDS:
+          state = SM_LEDS;
+          break;
+      default:
+          break;
+  }  
+
+  switch(state){
+      case SM_LEDS:
+          photoresistor = analogRead(A4);
+          if(photoresistor >= MAX/2){
+              digitalWrite(light, LOW);
+          }else if(photoresistor < MAX/2){
+              digitalWrite(light, HIGH);
+          }
+          Serial.println(photoresistor);
+          break;
+      default:
+          break;
+  }
+  return state;
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  unsigned char i;
+  for (i = 0; i < tasksNum; ++i) {
+    if ( (millis() - tasks[i].elapsedTime) >= tasks[i].period) {
+        tasks[i].state = tasks[i].TickFct(tasks[i].state);
+        tasks[i].elapsedTime = millis(); // Last time this task was ran
+    }
+  }
+  delay(100);
+}

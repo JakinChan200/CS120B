@@ -1,0 +1,222 @@
+/* Your Name & E-mail:Jakin Chan jchan419@ucr.edu
+* Lab Section: 021
+* Assignment: Lab 7  Exercise 2
+* Exercise Description: Car game, dodge obstacles, obdtacle move faster as time goes on, change car character if crash, and display distance
+*
+* I acknowledge all content contained herein, excluding 
+*   template or example code, is my own original work.
+*
+* Demo Link: https://youtu.be/_AQTRcikp2M
+*/
+
+
+#include <LiquidCrystal.h>
+
+const int rs = 7, en = 8, d4 = 9, d5 = 10, d6 = 11, d7 = 12;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+typedef struct task {
+  int state;
+  unsigned long period;
+  unsigned long elapsedTime;
+  int (*TickFct)(int);
+} task;
+
+const unsigned short tasksNum = 2;
+task tasks[tasksNum];
+
+enum States {SM_OBSTACLES, SM_FREEZE, SM_CLEAR_OBSTACLES};
+enum SM2_States {SM2_DISPLAY, /*SM2_PRESS,*/ SM2_ENDSCREEN, SM2_DISTANCE, SM2_RESET};
+unsigned char numMaxObstacles = 5;
+int obstacles[5][2] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
+unsigned char freezeCount = 0;
+unsigned char isFreeze = 0;
+unsigned char isReset = 0;
+unsigned char playerRow = 0;
+unsigned int distance = 0;
+unsigned char i = 0;
+unsigned char gameSpeed = 15;
+unsigned char cnt = 0;
+unsigned char numCntHitMax = 0;
+
+void setup() {
+    lcd.begin(16, 2);
+    tasks[i].state = SM_OBSTACLES;
+    tasks[i].period = 100;
+    tasks[i].elapsedTime = 0;
+    tasks[i].TickFct = &obstacleHandling;
+    ++i;
+    tasks[i].state = SM2_DISPLAY;
+    tasks[i].period = 100;
+    tasks[i].elapsedTime = 0;
+    tasks[i].TickFct = &display;
+    Serial.begin(9600);
+}
+
+
+
+int obstacleHandling(int state){
+    switch(state){
+        case SM_OBSTACLES:
+            if(isFreeze){
+                state = SM_FREEZE;
+                freezeCount = 0;
+            }else if(isReset){
+                state = SM_CLEAR_OBSTACLES;
+            }else{
+                state = SM_OBSTACLES;
+            }
+            break;
+        case SM_FREEZE:
+            if(isReset){
+                state = SM_CLEAR_OBSTACLES;
+            }
+            break;
+        case SM_CLEAR_OBSTACLES:
+            if(isReset){
+                state = SM_CLEAR_OBSTACLES;
+            }else{
+                state = SM_OBSTACLES;
+            }
+            break;
+        default:
+            break;
+    }
+
+    switch(state){
+        case SM_OBSTACLES:
+            if(cnt >= gameSpeed){
+                numCntHitMax++;
+                cnt = 0;
+                distance++;
+                for(i = 0; i < numMaxObstacles; i++){                           //Get rid of obstacles if they will move off the screen when they move
+                    if(obstacles[i][0] <= 0){
+                        obstacles[i][0] = -1;
+                        obstacles[i][1] = -1;
+                    }else if(obstacles[i][0] > 0){                              //Move obstacles if they wil not move off the screen
+                        obstacles[i][0] = obstacles[i][0]-1;
+                    }
+                }
+                if(gameSpeed> 3 && numCntHitMax % 3 == 0){gameSpeed--;}         //Make the game exponentially faster every 3 times the obstacles move
+                if(numCntHitMax % 5 == 0){                                      //Every 5 times the obstacles move, add another one, with a max of 5
+                    for(i = 0; i < numMaxObstacles; i++){
+                        if(obstacles[i][0] < 0){
+                            obstacles[i][0] = 15;
+                            int randomInt = random(0, 2);
+                            obstacles[i][1] = randomInt;
+                            break;
+                        }
+                    }
+                } 
+            }
+            cnt++;
+            break;
+        case SM_FREEZE:
+            break;
+        case SM_CLEAR_OBSTACLES:
+            for(i = 0; i < numMaxObstacles; i++){
+                obstacles[i][0] = -1;
+                obstacles[i][1] = -1;
+            }
+            gameSpeed = 15;
+            break;
+        default:
+            break;
+    }
+    return state;
+}
+
+int display(int state){
+    switch(state){
+        case SM2_DISPLAY:
+            if(digitalRead(A0) == HIGH && digitalRead(A1) == LOW && digitalRead(A2) == LOW){
+                state = SM2_RESET;
+            }
+            for(i = 0; i < numMaxObstacles; i++){
+                if(obstacles[i][1] == playerRow && obstacles[i][0] == 0){
+                    isFreeze = 1;
+                    freezeCount = 0;
+                    state = SM2_ENDSCREEN;
+                }
+            }
+            break;
+        case SM2_ENDSCREEN:
+            if(freezeCount >= 30){
+                lcd.clear();
+                state = SM2_DISTANCE;
+                isReset = 1;
+            }else if(digitalRead(A0) == HIGH){
+                state = SM2_RESET;
+            }else{
+                state = SM2_ENDSCREEN;
+            }
+            break;
+        case SM2_DISTANCE:
+            if(digitalRead(A0) == HIGH){
+                state = SM2_RESET;
+            }else{
+                state = SM2_DISTANCE;
+            }
+            break;
+        case SM2_RESET:
+            if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) == LOW){
+                isFreeze = 0;
+                isReset = 0;
+                state = SM2_DISPLAY;
+            }
+            break;
+        default:
+            break;
+    }
+    switch(state){
+        case SM2_DISPLAY:
+            lcd.clear();
+            for(i = 0; i < numMaxObstacles; i++){
+                 if(obstacles[i][0] != -1){
+                     lcd.setCursor(obstacles[i][0], obstacles[i][1]);
+                     lcd.write('O');
+                 }
+            }
+            if(digitalRead(A1) == HIGH && digitalRead(A2) == LOW){
+                playerRow = 0;
+            }else if(digitalRead(A1) == LOW && digitalRead(A2) == HIGH){
+                playerRow = 1;
+            }
+
+            lcd.setCursor(0, playerRow);
+            lcd.write('K');
+            break;
+        case SM2_ENDSCREEN:
+            lcd.setCursor(0, playerRow);
+            lcd.write('X');
+            freezeCount++;
+            break;
+        case SM2_DISTANCE:
+            lcd.setCursor(0, 0);
+            lcd.print("DISTANCE:");
+            lcd.setCursor(0, 1);
+            lcd.print(distance);
+            break;
+        case SM2_RESET:
+            isReset = 1;
+            playerRow = 0;
+            distance = 0;
+            lcd.setCursor(0, playerRow);
+            lcd.write('K');
+            break;
+        default:
+            break;
+        
+    }
+    return state;
+}
+void loop(){
+  unsigned char i;
+  for (i = 0; i < tasksNum; ++i) {
+    if ( (millis() - tasks[i].elapsedTime) >= tasks[i].period) {
+        tasks[i].state = tasks[i].TickFct(tasks[i].state);
+        tasks[i].elapsedTime = millis(); // Last time this task was ran
+    }
+  }
+  delay(100);
+}

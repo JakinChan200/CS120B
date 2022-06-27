@@ -1,31 +1,17 @@
 /* Your Name & E-mail:Jakin Chan jchan419@ucr.edu
 * Lab Section: 021
-* Assignment: Lab 7  Exercise 1
-* Exercise Description: text editor, A0-A3 is a-d; Holding A4 makes it uppercase. Holding 2 of A0-A3 for 1 sec resets the editor
+* Assignment: Custom Project Demo #1
+* Exercise Description: Car game, dodge obstacles, obdtacle move faster as time goes on, change car character if crash, and display distance
 *
 * I acknowledge all content contained herein, excluding 
 *   template or example code, is my own original work.
 *
-* Demo Link: https://youtu.be/_UDb2S5Z-ck
+* Demo Link: https://youtu.be/_AQTRcikp2M
 */
 
-
-#include <LiquidCrystal.h>
-const int rs = 7, en = 8, d4 = 9, d5 = 10, d6 = 11, d7 = 12;
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
-
-//void setup() {
-//  lcd.begin(16, 2);
-//  lcd.print("hello, world!");
-//}
-//
-//void loop() {
-//  // set the cursor to column 0, line 1
-//  lcd.setCursor(0, 1);
-//  // print the number of seconds since reset:
-//  lcd.print(millis() / 1000);
-//}
-
+#define middleOfJoyStick 511
+#define joyStickBuffer 200
+#define SW 2
 typedef struct task {
   int state;
   unsigned long period;
@@ -33,104 +19,50 @@ typedef struct task {
   int (*TickFct)(int);
 } task;
 
-unsigned char cnt;
-unsigned char isUppercase = 0;
-unsigned char letter = 0;
-unsigned char characters = 0;
-unsigned char rowNumber = 0;
-unsigned char newline = 0;
-unsigned char clearLCD = 0;
-const unsigned short tasksNum = 2;
+const unsigned short tasksNum = 1;
 task tasks[tasksNum];
 
-enum States {SM_WAIT, SM_PRESS, SM_HOLD, SM_CLEAR, SM_FULL};
-enum SM2_States {SM2_Action};
+enum States {SM_WAIT, SM_RELEASE} state;
+
+unsigned char ignoreInput = 0;
+unsigned char value = 1;
+unsigned char i;
+
 void setup() {
-    lcd.begin(16, 2);
-    cnt = 0;
-    unsigned char i = 0;
+    pinMode(SW, INPUT_PULLUP);
+    
     tasks[i].state = SM_WAIT;
     tasks[i].period = 100;
     tasks[i].elapsedTime = 0;
-    tasks[i].TickFct = &getInput;
-    ++i;
-    tasks[i].state = SM2_Action;
+    tasks[i].TickFct = &GameHandling;
+/*    ++i;
+    tasks[i].state = SM2_DISPLAY;
     tasks[i].period = 100;
     tasks[i].elapsedTime = 0;
-    tasks[i].TickFct = &display;
+    tasks[i].TickFct = &display;*/
     Serial.begin(9600);
 }
 
 
 
-int getInput(int state){
+int GameHandling(int state){
     switch(state){
         case SM_WAIT:
-            if(characters >= 16){
-                state = SM_FULL;
-            }if(digitalRead(A0) == HIGH && digitalRead(A1) == LOW && digitalRead(A2) ==  LOW && digitalRead(A3) == LOW){
-                if(digitalRead(A4) == HIGH){ isUppercase = 1;}
-                characters++;
-                letter = 1;
-                state = SM_PRESS;
-            }else if(digitalRead(A0) == LOW && digitalRead(A1) == HIGH && digitalRead(A2) == LOW && digitalRead(A3) == LOW){
-                if(digitalRead(A4) == HIGH){ isUppercase = 1;}
-                characters++;
-                letter = 2;
-                state = SM_PRESS;
-            }else if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) ==  HIGH && digitalRead(A3) == LOW){
-                if(digitalRead(A4) == HIGH){ isUppercase = 1;}
-                characters++;
-                letter = 3;
-                state = SM_PRESS;
-            }else if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) ==  LOW && digitalRead(A3) == HIGH){
-                if(digitalRead(A4) == HIGH){ isUppercase = 1;}
-                characters++;
-                letter = 4;
-                state = SM_PRESS;
-            }else if(digitalRead(A0) == HIGH && digitalRead(A1) == HIGH || digitalRead(A0) == HIGH && digitalRead(A2) == HIGH || digitalRead(A0) == HIGH && digitalRead(A3) == HIGH
-                || digitalRead(A1) == HIGH && digitalRead(A2) == HIGH || digitalRead(A1) == HIGH && digitalRead(A3) == HIGH || digitalRead(A2) == HIGH && digitalRead(A3) == HIGH){
-                state = SM_HOLD;
-                cnt = 0;
-            }
-            break;
-        case SM_PRESS:
-            if(digitalRead(A0) == LOW && digitalRead(A1) == LOW && digitalRead(A2) ==  LOW && digitalRead(A3) == LOW && digitalRead(A4) == LOW){
+            if(ignoreInput){
                 state = SM_WAIT;
-            }else if(digitalRead(A0) == HIGH && digitalRead(A1) == HIGH || digitalRead(A0) == HIGH && digitalRead(A2) == HIGH || digitalRead(A0) == HIGH && digitalRead(A3) == HIGH
-                || digitalRead(A1) == HIGH && digitalRead(A2) == HIGH || digitalRead(A1) == HIGH && digitalRead(A3) == HIGH || digitalRead(A2) == HIGH && digitalRead(A3) == HIGH){
-                state = SM_HOLD;
-                cnt = 0;
-            }else{
-                letter = 0;
-                state = SM_PRESS;
+            }else if(analogRead(A1) > middleOfJoyStick + joyStickBuffer){
+                value = (value == 1) ? value : --value;
+                state = SM_RELEASE;
+            }else if(analogRead(A1) < middleOfJoyStick - joyStickBuffer){
+                value = (value == 9) ? value : ++value;
+                state = SM_RELEASE;
+            }else if(digitalRead(SW) == 0){
+                state = SM_RELEASE;
             }
             break;
-        case SM_HOLD:
-            Serial.println(cnt);
-            if(digitalRead(A0) == HIGH && digitalRead(A1) == HIGH || digitalRead(A0) == HIGH && digitalRead(A2) == HIGH || digitalRead(A0) == HIGH && digitalRead(A3) == HIGH
-                || digitalRead(A1) == HIGH && digitalRead(A2) == HIGH || digitalRead(A1) == HIGH && digitalRead(A3) == HIGH || digitalRead(A2) == HIGH && digitalRead(A3) == HIGH){
-                if(cnt >= 10){
-                    state = SM_CLEAR;
-                }else{  
-                    state = SM_HOLD;
-                }
-            }else if(characters >= 16){
-                state = SM_FULL;
-            }else{
-                state = SM_WAIT;
-            }
-            break;
-        case SM_CLEAR:
-            clearLCD = 0;
-            state = SM_WAIT;
-            break;
-        case SM_FULL:
-            if(digitalRead(A0) == HIGH && digitalRead(A1) == HIGH || digitalRead(A0) == HIGH && digitalRead(A2) == HIGH || digitalRead(A0) == HIGH && digitalRead(A3) == HIGH
-                || digitalRead(A1) == HIGH && digitalRead(A2) == HIGH || digitalRead(A1) == HIGH && digitalRead(A3) == HIGH || digitalRead(A2) == HIGH && digitalRead(A3) == HIGH){
-                state = SM_HOLD;  
-            }else if(rowNumber == 1 && characters == 0){
-                newline = 0;
+        case SM_RELEASE:
+            if(analogRead(A1) < middleOfJoyStick + joyStickBuffer && analogRead(A1) > middleOfJoyStick - joyStickBuffer && 
+               analogRead(A0) < middleOfJoyStick + joyStickBuffer && analogRead(A0) > middleOfJoyStick - joyStickBuffer && digitalRead(SW) == 1){
                 state = SM_WAIT;
             }
             break;
@@ -140,74 +72,31 @@ int getInput(int state){
 
     switch(state){
         case SM_WAIT:
-            clearLCD = 0;
-            isUppercase = 0;
-            letter = 0;
             break;
-        case SM_PRESS:
-            break;
-        case SM_HOLD:
-            cnt++;
-            break;
-        case SM_CLEAR:
-            clearLCD = 1;
-            characters = 0;
-            rowNumber = 0;
-            newline = 0;
-            cnt = 0;
-            break;
-        case SM_FULL:
-            if(rowNumber == 0){
-                rowNumber = 1;
-                newline = 1;
-                characters = 0;
-            }
+        case SM_RELEASE:
             break;
         default:
             break;
     }
     return state;
 }
-
+/*
 int display(int state){
     switch(state){
-        case SM2_Action:
+       
             break;
         default:
             break;
     }
     switch(state){
-        case SM2_Action:
-            if(letter > 0){
-                if(letter == 1 && isUppercase == 1){
-                    lcd.print('A');
-                }else if(letter == 1){
-                    lcd.print('a');
-                }else if(letter == 2 && isUppercase == 1){
-                    lcd.print('B');
-                }else if(letter == 2){
-                    lcd.print('b');
-                }else if(letter == 3 && isUppercase == 1){
-                    lcd.print('C');
-                }else if(letter == 3){
-                    lcd.print('c');
-                }else if(letter == 4 && isUppercase == 1){
-                    lcd.print('D');
-                }else if(letter == 4){
-                    lcd.print('d');
-                }
-            }else if(newline){
-                lcd.setCursor(0, 1);
-            }else if(clearLCD){
-                lcd.clear();
-            }
+        
             break;
         default:
             break;
         
     }
     return state;
-}
+}*/
 void loop(){
   unsigned char i;
   for (i = 0; i < tasksNum; ++i) {
@@ -216,5 +105,31 @@ void loop(){
         tasks[i].elapsedTime = millis(); // Last time this task was ran
     }
   }
+  int X = analogRead(A0);
+  int Y = analogRead(A1);
+  Serial.print("X:");
+  Serial.print(X);
+  if(X < 10){
+      Serial.print("    Y:");
+  }else if(X < 100){
+      Serial.print("   Y:");
+  }else if(X < 1000){
+      Serial.print("  Y:");
+  }else{
+      Serial.print(" Y:");
+  }
+  Serial.print(Y);
+  if(Y < 10){
+      Serial.print("    ENTER:");
+  }else if(Y < 100){
+      Serial.print("   ENTER:");
+  }else if(Y < 1000){
+      Serial.print("  ENTER:");
+  }else{
+      Serial.print(" ENTER:");
+  }
+  Serial.print(digitalRead(SW));
+  Serial.print(" VALUE:");
+  Serial.println(value);
   delay(100);
 }

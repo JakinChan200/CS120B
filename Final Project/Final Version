@@ -1,0 +1,307 @@
+/* Your Name & E-mail:Jakin Chan jchan419@ucr.edu
+* Lab Section: 021
+* Assignment: Custom Project Final Version
+* Exercise Description: 
+*
+* I acknowledge all content contained herein, excluding 
+*   template or example code, is my own original work.
+*
+* Demo Link: https://youtu.be/6dbo995MIsM
+*/
+
+#define SW 2
+#define latchPin 5
+#define clockPin 4
+#define dataPin 6
+typedef struct task {
+  int state;
+  unsigned long period;
+  unsigned long elapsedTime;
+  int (*TickFct)(int);
+} task;
+
+const unsigned short tasksNum = 3;
+task tasks[tasksNum];
+
+enum States {SM_WAIT, SM_RELEASE, SM_NEXTNOTE, SM_ENDDISPLAY};
+enum SoundStates {SM2_runThrough, SM2_playRandom, SM2_silent};
+enum displayNumber {SM3_runThroughMode, SM3_guessMode, SM3_endDisplayMode};
+
+unsigned char ignoreInput = 1;
+unsigned char value = 0;                
+unsigned char playNotes = 0;     
+unsigned char curNote = 0;       
+unsigned char newNote = 0;     
+unsigned char newNoteChosen = 0; 
+unsigned char gameEnd = 0;      
+signed char displayCount = 0;
+unsigned char i;   
+
+void setup() {
+    pinMode(SW, INPUT_PULLUP);
+    pinMode(3, OUTPUT);
+    pinMode(latchPin, OUTPUT);
+    pinMode(clockPin, OUTPUT);
+    pinMode(dataPin, OUTPUT);
+    
+    tasks[i].state = SM_WAIT;
+    tasks[i].period = 100;
+    tasks[i].elapsedTime = 0;
+    tasks[i].TickFct = &GameHandling;
+    ++i;
+    tasks[i].state = SM2_runThrough;
+    tasks[i].period = 100;
+    tasks[i].elapsedTime = 0;
+    tasks[i].TickFct = &buzzer;
+    ++i;
+    tasks[i].state = SM3_runThroughMode;
+    tasks[i].period = 100;
+    tasks[i].elapsedTime = 0;
+    tasks[i].TickFct = &displayNumber;
+    Serial.begin(9600);
+}
+
+
+
+int GameHandling(int state){
+    unsigned int middleOfJoyStick = 511;
+    unsigned char joyStickBuffer = 200;
+    static unsigned char processEnter = 0;
+    switch(state){
+        case SM_WAIT:
+            if(ignoreInput){
+                state = SM_WAIT;
+            }else if(ignoreInput != playNotes){
+                playNotes = ignoreInput;
+                state = SM_NEXTNOTE;
+            }else if(analogRead(A0) > middleOfJoyStick + joyStickBuffer && analogRead(A1) < middleOfJoyStick + joyStickBuffer && analogRead(A1) > middleOfJoyStick - joyStickBuffer){
+                value = 0;
+                playNotes = 1;
+                state = SM_RELEASE;
+            }else if(analogRead(A1) > middleOfJoyStick + joyStickBuffer){
+                value = (value == 0) ? value : --value;
+                state = SM_RELEASE;
+            }else if(analogRead(A1) < middleOfJoyStick - joyStickBuffer){
+                value = (value == 7) ? value : ++value;
+                state = SM_RELEASE;
+            }else if(digitalRead(SW) == 0){
+                processEnter = 1;
+                state = SM_RELEASE;
+            }
+            break;
+        case SM_RELEASE:
+            if(analogRead(A1) < middleOfJoyStick + joyStickBuffer && analogRead(A1) > middleOfJoyStick - joyStickBuffer && 
+               analogRead(A0) < middleOfJoyStick + joyStickBuffer && analogRead(A0) > middleOfJoyStick - joyStickBuffer && digitalRead(SW) == 1){
+                if(curNote == value && processEnter){
+                    processEnter = 0;
+                    state = SM_NEXTNOTE;
+                }else if(curNote != value && processEnter){
+                    processEnter = 0;
+                    displayCount = -1;
+                    gameEnd = 1;
+                    value = 0;
+                    state = SM_ENDDISPLAY;
+                }else{
+                    state = SM_WAIT;
+                }
+            }
+            break;
+        case SM_NEXTNOTE:
+            state = SM_WAIT;
+            break;
+        case SM_ENDDISPLAY:
+            if(analogRead(A0) > middleOfJoyStick + joyStickBuffer && analogRead(A1) < middleOfJoyStick + joyStickBuffer && analogRead(A1) > middleOfJoyStick - joyStickBuffer){
+                gameEnd = 0;
+                playNotes = 1;
+                displayCount = 0;
+                state = SM_RELEASE;
+            }
+            break;
+        default:
+            break;
+    }
+
+    switch(state){
+        case SM_WAIT:
+            playNotes = ignoreInput;
+            if(newNoteChosen){newNote = 0;}
+            break;
+        case SM_RELEASE:
+            break;
+        case SM_NEXTNOTE:
+            newNote = 1;
+            break;
+        case SM_ENDDISPLAY:
+            if(displayCount < 19){
+                displayCount++;
+            }
+            break;
+        default:
+            break;
+    }
+    return state;
+}
+
+int buzzer(int state){
+    static unsigned char count;
+    int frequencies[8] = {262, 294, 330, 349, 392, 440, 494, 523};
+    switch(state){
+        case SM2_runThrough:
+            if(count < 45 && playNotes){
+                state = SM2_runThrough;
+            }else{
+                ignoreInput = 0;
+                count = 0;
+                curNote = 0;
+                state = SM2_playRandom;
+            }
+            break;
+        case SM2_playRandom:
+            if(playNotes){
+                count = 0;
+                curNote = 0;
+                state = SM2_runThrough;
+            }else if(gameEnd){
+                state = SM2_silent;
+            }else{
+                state = SM2_playRandom;        
+            }
+            break;
+        case SM2_silent:
+            if(!gameEnd){
+                count = 0;
+                curNote = 0;
+                state = SM2_runThrough;
+            }
+            break;
+        default:
+            break;
+    }
+    switch(state){
+        case SM2_runThrough:
+            if(count % 5 == 0 && count < 40){
+                tone(3, frequencies[curNote], 450);
+                ignoreInput = 1;
+                curNote++;
+            }else if(count >= 44){
+                ignoreInput = 0;
+            }
+            count++;
+            break;
+        case SM2_playRandom:
+            if(newNote){
+                int lastNote = curNote;
+                while(lastNote == curNote){
+                    curNote = (int)random(0, 7);
+                }
+                newNoteChosen = 1;
+            }else{
+                newNoteChosen = 0;
+            }
+            if(count % 40 == 0 || newNoteChosen){
+                count = 0;
+                tone(3, frequencies[curNote], 500);
+            }
+            count++;
+            break;
+        case SM2_silent:
+            break;
+        default:
+            break;
+    }
+    return state;
+}
+
+int displayNumber(int state){
+    byte displayBits[8] = {0x09, 0xE5, 0xAD, 0x99, 0xBC, 0xFC, 0x0D, 0xFD};
+    switch(state){
+        case SM3_runThroughMode:
+            if(playNotes){
+                state = SM3_runThroughMode;
+            }else if(gameEnd){
+                state = SM3_endDisplayMode;
+            }else{
+                state = SM3_guessMode;
+            }
+            break;
+        case SM3_guessMode:
+            if(playNotes){
+                state = SM3_runThroughMode;
+            }else if(gameEnd){
+                state = SM3_endDisplayMode;
+            }
+            break;
+        case SM3_endDisplayMode:
+            if(playNotes){
+                state = SM3_runThroughMode;
+            }
+            break;
+        default:
+            break;
+    }
+
+    switch(state){
+        case SM3_runThroughMode:
+            digitalWrite(latchPin, LOW);
+            shiftOut(dataPin, clockPin, LSBFIRST, displayBits[curNote-1]);
+            digitalWrite(latchPin, HIGH);
+            break;
+        case SM3_guessMode:
+            digitalWrite(latchPin, LOW);
+            shiftOut(dataPin, clockPin, LSBFIRST, displayBits[value]);
+            digitalWrite(latchPin, HIGH);
+            break;
+        case SM3_endDisplayMode:
+            if(displayCount % 10 == 0 || displayCount == 1){
+                digitalWrite(latchPin, LOW);
+                shiftOut(dataPin, clockPin, LSBFIRST, displayBits[curNote]);
+                digitalWrite(latchPin, HIGH);
+            }else if(displayCount % 5 == 0){
+                digitalWrite(latchPin, LOW);
+                shiftOut(dataPin, clockPin, LSBFIRST, 0x00);
+                digitalWrite(latchPin, HIGH);
+            }
+            break;
+        default:
+            break;
+    }
+    return state;
+}
+void loop(){  
+  for (i = 0; i < tasksNum; ++i) {
+    if ( (millis() - tasks[i].elapsedTime) >= tasks[i].period) {
+        tasks[i].state = tasks[i].TickFct(tasks[i].state);
+        tasks[i].elapsedTime = millis(); // Last time this task was ran
+    }
+  }
+/*
+  int X = analogRead(A0);
+  int Y = analogRead(A1);
+  Serial.print("X:");
+  Serial.print(X);
+  if(X < 10){
+      Serial.print("    Y:");
+  }else if(X < 100){
+      Serial.print("   Y:");
+  }else if(X < 1000){
+      Serial.print("  Y:");
+  }else{
+      Serial.print(" Y:");
+  }
+  Serial.print(Y);
+  if(Y < 10){
+      Serial.print("    ENTER:");
+  }else if(Y < 100){
+      Serial.print("   ENTER:");
+  }else if(Y < 1000){
+      Serial.print("  ENTER:");
+  }else{
+      Serial.print(" ENTER:");
+  }
+  Serial.print(digitalRead(SW));
+  Serial.print(" GUESS:");
+  Serial.print(value);
+  Serial.print(" Note Being Played: ");
+  Serial.println(curNote);*/
+  delay(100);
+}

@@ -1,0 +1,212 @@
+/* Your Name & E-mail:Jakin Chan jchan419@ucr.edu
+* Lab Section: 021
+* Assignment: Custom Project Demo #1
+* Exercise Description: Car game, dodge obstacles, obdtacle move faster as time goes on, change car character if crash, and display distance
+*
+* I acknowledge all content contained herein, excluding 
+*   template or example code, is my own original work.
+*
+* Demo Link: https://youtu.be/_AQTRcikp2M
+*/
+
+#define middleOfJoyStick 511
+#define joyStickBuffer 200
+#define SW 2
+typedef struct task {
+  int state;
+  unsigned long period;
+  unsigned long elapsedTime;
+  int (*TickFct)(int);
+} task;
+
+const unsigned short tasksNum = 2;
+task tasks[tasksNum];
+
+enum States {SM_WAIT, SM_RELEASE, SM_NEXTNOTE};
+enum SoundStates {SM2_runThrough, SM2_playRandom};
+
+int frequencies[8] = {262, 294, 330, 349, 392, 440, 494, 523};
+unsigned char ignoreInput = 1;
+unsigned char value = 0;
+unsigned char i;
+unsigned char index = 0;
+unsigned char count = 0;
+unsigned char playNotes = 0;
+unsigned char curNote = 0;
+unsigned char processEnter = 0;
+unsigned int score = 0;
+unsigned char newNote = 0;
+unsigned char newNoteChosen = 0;
+
+void setup() {
+    pinMode(SW, INPUT_PULLUP);
+    pinMode(3, OUTPUT);
+    
+    tasks[i].state = SM_WAIT;
+    tasks[i].period = 100;
+    tasks[i].elapsedTime = 0;
+    tasks[i].TickFct = &GameHandling;
+    ++i;
+    tasks[i].state = SM2_runThrough;
+    tasks[i].period = 100;
+    tasks[i].elapsedTime = 0;
+    tasks[i].TickFct = &buzzer;
+    Serial.begin(9600);
+}
+
+
+
+int GameHandling(int state){
+    switch(state){
+        case SM_WAIT:
+            if(ignoreInput){
+                state = SM_WAIT;
+            }else if(ignoreInput != playNotes){
+                playNotes = ignoreInput;
+                state = SM_NEXTNOTE;
+            }else if(analogRead(A0) > middleOfJoyStick + joyStickBuffer && analogRead(A1) < middleOfJoyStick + joyStickBuffer && analogRead(A1) > middleOfJoyStick - joyStickBuffer){
+                playNotes = 1;
+                score = 0;
+                state = SM_RELEASE;
+            }else if(analogRead(A1) > middleOfJoyStick + joyStickBuffer){
+                value = (value == 0) ? value : --value;
+                state = SM_RELEASE;
+            }else if(analogRead(A1) < middleOfJoyStick - joyStickBuffer){
+                value = (value == 7) ? value : ++value;
+                state = SM_RELEASE;
+            }else if(digitalRead(SW) == 0){
+                processEnter = 1;
+                state = SM_RELEASE;
+            }
+            break;
+        case SM_RELEASE:
+            if(analogRead(A1) < middleOfJoyStick + joyStickBuffer && analogRead(A1) > middleOfJoyStick - joyStickBuffer && 
+               analogRead(A0) < middleOfJoyStick + joyStickBuffer && analogRead(A0) > middleOfJoyStick - joyStickBuffer && digitalRead(SW) == 1){
+                if(curNote == value && processEnter){
+                    score++;
+                    processEnter = 0;
+                    state = SM_NEXTNOTE;
+                }else if(curNote != value && processEnter){
+                    processEnter = 0;
+                    state = SM_WAIT;
+                }else{
+                    state = SM_WAIT;
+                }
+            }
+            break;
+        case SM_NEXTNOTE:
+            state = SM_WAIT;
+            break;
+        default:
+            break;
+    }
+
+    switch(state){
+        case SM_WAIT:
+            playNotes = ignoreInput;
+            if(newNoteChosen){newNote = 0;}
+            break;
+        case SM_RELEASE:
+            break;
+        case SM_NEXTNOTE:
+            newNote = 1;
+            break;
+        default:
+            break;
+    }
+    return state;
+}
+
+int buzzer(int state){
+    switch(state){
+        case SM2_runThrough:
+            if(count < 45 && playNotes){
+                state = SM2_runThrough;
+            }else{
+                ignoreInput = 0;
+                count = 0;
+                state = SM2_playRandom;
+            }
+            break;
+        case SM2_playRandom:
+            if(playNotes){
+                count = 0;
+                curNote = 0;
+                state = SM2_runThrough;
+            }else{
+                state = SM2_playRandom;        
+            }
+            break;
+        default:
+            break;
+    }
+    switch(state){
+        case SM2_runThrough:
+            if(count % 5 == 0 && count < 40){
+                tone(3, frequencies[curNote], 450);
+                ignoreInput = 1;
+                curNote++;
+            }else if(count >= 44){
+                ignoreInput = 0;
+            }
+            count++;
+            break;
+        case SM2_playRandom:
+            if(newNote){
+                int lastNote = curNote;
+                while(lastNote == curNote){
+                    curNote = (int)random(0, 7);
+                }
+                newNoteChosen = 1;
+            }else{
+                newNoteChosen = 0;
+            }
+            if(count % 40 == 0 || newNoteChosen){
+                count = 0;
+                tone(3, frequencies[curNote], 500);
+            }
+            count++;
+            break;
+        default:
+            break;
+    }
+    return state;
+}
+void loop(){
+  unsigned char i;
+  for (i = 0; i < tasksNum; ++i) {
+    if ( (millis() - tasks[i].elapsedTime) >= tasks[i].period) {
+        tasks[i].state = tasks[i].TickFct(tasks[i].state);
+        tasks[i].elapsedTime = millis(); // Last time this task was ran
+    }
+  }
+  int X = analogRead(A0);
+  int Y = analogRead(A1);
+  Serial.print("X:");
+  Serial.print(X);
+  if(X < 10){
+      Serial.print("    Y:");
+  }else if(X < 100){
+      Serial.print("   Y:");
+  }else if(X < 1000){
+      Serial.print("  Y:");
+  }else{
+      Serial.print(" Y:");
+  }
+  Serial.print(Y);
+  if(Y < 10){
+      Serial.print("    ENTER:");
+  }else if(Y < 100){
+      Serial.print("   ENTER:");
+  }else if(Y < 1000){
+      Serial.print("  ENTER:");
+  }else{
+      Serial.print(" ENTER:");
+  }
+  Serial.print(digitalRead(SW));
+  Serial.print(" GUESS:");
+  Serial.print(value);
+  Serial.print(" Note Being Played: ");
+  Serial.println(curNote);
+  delay(100);
+}
